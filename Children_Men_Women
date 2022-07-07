@@ -8,7 +8,7 @@ use "C:\Users\v1npandy\OneDrive - ANUVAAD SOLUTIONS LLP\NFHS5\Household Member R
  
 keep hv005 hv001 hv022 shdist hc70 hc72 hc71 hc57 hv042 hv103 hc1 hc55 hc56 hc57 hv028 hb40 shb74 hv104 hv105 shb53 shb54 shb74 shb57 hhid hvidx hv024 hc56 hv103 hv021 hv002 
 
-replace hv005 = hv005/.000001
+replace hv005 = hv005/1000000
 svyset [pweight = hv005], psu(hv001) strata(hv022) singleunit(centered)
 label define yesno 0"No" 1"Yes"
 
@@ -94,7 +94,8 @@ esttab using NFHSAnemia_DHS.csv, cell("b(f(4))") unstack noobs replace wide plai
 *MEN*
 
 *Sugar levels*
-svyset [pweight = hv005], psu(hv001) strata(hv022) singleunit(centered)
+replace hv028 = hv028/1000000
+svyset [pweight = hv028], psu(hv001) strata(hv022) singleunit(centered)
 
 gen fast = 0
 	replace fast=1 if shb53 >= 8 & shb54 >= 8
@@ -180,7 +181,7 @@ estpost svy: tab shdist sugar_women, row
 esttab using NFHSSugar_women.csv, cell("b(f(4))") unstack noobs replace wide plain 		
 
 
-*SUGAR IN MEN HIGH/TAKING MEDS		
+*SUGAR IN WOMEN HIGH/TAKING MEDS		
 gen sugarany_women = 1 if (glucose_women > 140) | (shb57 == 1 & hv104 == 2)
 	replace sugarany_women = . if hv105 < 15 
 		label var sugar_anymen "WOMEN Blood sugar level - high or very high (>140 mg/dl) or taking medicine to control blood sugar level"
