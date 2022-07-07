@@ -6,7 +6,7 @@ clear all
 
 use "C:\Users\v1npandy\OneDrive - ANUVAAD SOLUTIONS LLP\NFHS5\Household Member Recode\IAPR7AFL.DTA"
  
-keep hv005 hv001 hv022 shdist hc70 hc72 hc71 hc57 hv042 hv103 hc1 hc55 hc56 hc57 hv028 hb40 shb74 hv104 hv105 shb53 shb54 shb74 shb57 hhid hvidx hv024 hc56 hv103 hv021 hv002 
+keep hv005 hv001 hv022 shdist hc70 hc72 hc71 hc57 hv042 hv103 hc1 hc55 hc56 hc57 hv028 hb40 shb74 hv104 hv105 shb53 shb54 shb74 shb57 hhid hvidx hv024 hc56 hv103 hv021 hv002 ha54
 
 replace hv005 = hv005/1000000
 svyset [pweight = hv005], psu(hv001) strata(hv022) singleunit(centered)
@@ -113,25 +113,28 @@ gen sugar_men = .
 	replace sugar_men = . if glucose_men == .
 		label define sugar 1 "normal" 2 "high" 3 "very high"
 		label value sugar_men "sugar"
-		label var sugar_men "blood sugar level among men"
+		label var sugar_men "blood sugar level among men above 15"
 		
 estpost svy: tab shdist sugar_men, row 
 esttab using NFHSSugar_Men.csv, cell("b(f(4))") unstack noobs replace wide plain 		
 
 
-*SUGAR IN MEN HIGH/TAKING MEDS		
-gen sugarany_men = 1 if (glucose_men > 140) | (shb57 == 1 & hv104 == 1) 
-	replace sugarany_men = . if hv105 < 15 
-		label var sugar_anymen "MEN Blood sugar level - high or very high (>140 mg/dl) or taking medicine to control blood sugar level"
+	*SUGAR IN MEN HIGH/TAKING MEDS		
+	gen sugarany_men = . 
+	replace sugarany_men = 1 if (glucose_men > 140) | (shb57 == 1) 
+	replace sugarany_men = 0 if (glucose_men < 140 & shb57 == 0)
+		replace sugarany_men = . if hv105 < 15 | hv104 ==2 | (shb57 == . & glucose_men == .)
+			label val sugarany_men "yesno"
+			label var sugarany_men "MEN Blood sugar level - high or very high (>140 mg/dl) or taking medicine to control blood sugar level"
+			
 
-estpost svy: shdist sugarany_men, row
-esttab using NFHSSugarAny_Men.csv, cell("b(f(4))") unstack noobs replace wide plain 		
+	estpost svy: shdist sugarany_men, row
+	esttab using NFHSSugarAny_Men.csv, cell("b(f(4))") unstack noobs replace wide plain 		
 
-	
 *DIABETES IN MEN	
-gen clin_dia_men = 1
-    replace clin_dia_men = 2 if (glucose_men >= 126 & fast == 1) | (glucose_men >= 200 & fast == 0) | (shb57 == 1 & hv104 == 1)
-    replace clin_dia_men = . if glocuse_men == . & shb57 != 1 
+gen clin_dia_men = 0
+    replace clin_dia_men = 1 if (glucose_men >= 126 & fast == 1) | (glucose_men >= 200 & fast == 0) | (shb57 == 1 & hv104 == 1)
+    replace clin_dia_men = . if glucose_men == . & shb57 != 1 
 		label values fast clin_dia_men "yesno"
 		label variable clin_dia_men "Clinical diabetes"
 		
@@ -180,20 +183,22 @@ gen sugar_women = .
 estpost svy: tab shdist sugar_women, row 
 esttab using NFHSSugar_women.csv, cell("b(f(4))") unstack noobs replace wide plain 		
 
-
 *SUGAR IN WOMEN HIGH/TAKING MEDS		
-gen sugarany_women = 1 if (glucose_women > 140) | (shb57 == 1 & hv104 == 2)
-	replace sugarany_women = . if hv105 < 15 
-		label var sugar_anymen "WOMEN Blood sugar level - high or very high (>140 mg/dl) or taking medicine to control blood sugar level"
+gen sugarany_women = . 
+	replace sugarany_women = 1 if (glucose_women > 140) | (shb57 == 1) 
+	replace sugarany_women = 0 if (glucose_women < 140 & shb57 == 0)
+		replace sugarany_women = . if hv105 < 15 | hv104 == 1 | (shb57 == . & glucose_women == .)
+			label val sugarany_women "yesno"
+			label var sugarany_women "WOMEN Blood sugar level - high or very high (>140 mg/dl) or taking medicine to control blood sugar level"
+			
 
 estpost svy: shdist sugarany_women, row 
-esttab using NFHSSugarAny_Women.csv, cell("b(f(4))") unstack noobs replace wide plain 		
-
+esttab using NFHSSugarAny_Women.csv, cell("b(f(4))") unstack noobs replace wide plain
 
 *DIABETES IN WOMEN (ALL)
-gen clin_dia_women = 1
-    replace clin_dia_women = 2 if (glucose_women >= 126 & fast == 1) | (glucose_women >= 200 & fast == 0) | (shb57 == 1 & hv104 == 1)
-    replace clin_dia_women = . if glocuse_women == . & shb57 != 1 
+gen clin_dia_women = 0
+    replace clin_dia_women = 1 if (glucose_women >= 126 & fast == 1) | (glucose_women >= 200 & fast == 0) | (shb57 == 1 & hv104 == 2)
+    replace clin_dia_women = . if glucose_women == . & shb57 != 1 
 		label values fast clin_dia_women "yesno"
 		label variable clin_dia_women "Clinical diabetes"
 		
@@ -202,9 +207,9 @@ esttab using NFHSDiabetes_Women_preg.csv, cell("b(f(4))") unstack noobs replace 
 
 
 *DIABETES IN NON-PREGNANT WOMEN
-gen clin_dia_women_nonpreg = 1
-    replace clin_dia_women = 2 if (glucose_women >= 126 & fast == 1) | (glucose_women >= 200 & fast == 0) | (shb57 == 1 & hv104 == 1)
-    replace clin_dia_women = . if glocuse_women == . & shb57 != 1 | ha54 == 1
+gen clin_dia_women_nonpreg = 0
+    replace clin_dia_women = 1 if (glucose_women >= 126 & fast == 1) | (glucose_women >= 200 & fast == 0) | (shb57 == 1 & hv104 == 1)
+    replace clin_dia_women = . if glucose_women == . & shb57 != 1 | ha54 == 1
 		label values fast clin_dia_women "yesno"
 		label variable clin_dia_women "Clinical diabetes"
 
