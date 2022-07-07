@@ -1,0 +1,67 @@
+clear
+cls
+set maxvar 15000
+use "C:\Users\v1npandy\OneDrive - ANUVAAD SOLUTIONS LLP\NFHS5\Individual Recode\IAIR7AFL.dta"
+
+keep v005 v001 v022 v008 b3_01 v213 v445 v042 v455 v457
+
+replace v005 = v005/.000001
+svyset [pweight = v005], psu(v001) strata(v022) singleunit(centered)
+
+* age of most recent child
+gen age = v008 - b3_01
+
+* UNDERWEIGHT
+gen thin_women = inrange(v445,1200,1849) if inrange(v445,1200,6000)
+	replace thin_women=. if (v213==1 | age<2)
+		label values thin_women yesno
+		label var thin_women "Thin BMI - women"
+
+estpost svy: tab shdist thin_women, row
+esttab using NFHSUnderweight_AnyWomen_DHS.csv, cell("b(f(4))") unstack noobs replace wide plain 	
+
+*OVERWEIGHT
+gen ovobese_women = inrange(v445,2500,6000) if inrange(v445,1200,6000)
+	replace ovobese_women =. if (v213==1 | age<2)
+		label values ovobese_women yesno
+		label var ovobese_women "Overweight or obese BMI  - women"
+
+estpost svy: tab shdist ovobese_women, row
+esttab using NFHSOverweight_AnyWomen_DHS.csv, cell("b(f(4))") unstack noobs replace wide plain 	
+
+*ANEMIA
+gen anemia_women=0 if v042==1 & v455==0
+	replace anemia_women=1 if v457<4
+		label values anemia_women yesno
+		label var anemia_women "Any anemia - women"
+		
+estpost svy: tab shdist anemia_women, row
+esttab using NFHSAnemia_AnyWomen_DHS.csv, cell("b(f(4))") unstack noobs replace wide plain 	
+		
+gen anemia_preg = 0 if v042==1 & v455==0 
+	replace anemia_preg = 1 if v457 < 4  
+	replace anemia_preg = . if v213 == 0 
+		label value anemia_preg "yesno"
+		label var anemia_preg "any anemia pregnant women 15-49"
+		
+estpost svy: tab shdist anemia_preg, row
+esttab using NFHSAnemia_PregWomen_DHS.csv, cell("b(f(4))") unstack noobs replace wide plain 			
+	
+gen anemia_notpreg = = 0 if v042==1 & v455==0 
+	replace anemia_notpreg = 1 if v457 < 4 
+	replace anemia_notpreg = . if v213 == 1 
+		label value anemia_notpreg "yesno"
+		label var anemia_notpreg "any anemia pregnant women 15-49"	
+
+estpost svy: tab shdist anemia_notpreg, row
+esttab using NFHSAnemia_NotPregWomen_DHS.csv, cell("b(f(4))") unstack noobs replace wide plain 	
+
+********************		
+*gen sbp_avg=.
+*	replace sbp_avg = (sb18s + sb25s + sb29s)/3
+*		label var sbp_avg "average of the 3 systolic measurements taken"
+*		
+*gen dbp_avg=. 
+*	replace dbp_avg = (sb18d + sb25d + sb29d)/3
+*		label var dbp_avg "average of the 3 diastolic measurements taken"
+**********************		
